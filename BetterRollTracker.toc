@@ -1,0 +1,8 @@
+## Interface: 120000
+## Title: BetterRollTracker
+## Category-enUS: Better UI
+## IconTexture: 618858
+## Notes: Detects and displays players who rolled 69
+## Author: Banksy
+
+core.lua
