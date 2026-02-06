@@ -197,6 +197,6 @@ SlashCmdList["BetterRolls"] = function(msg)
         print("/brolls clear - Clear the roll list and hide frame")
         print("/brolls reset - Reset frame position to center")
         print("/brolls set <value> - Set the winner roll value")
-        print("/brolls test - Enables/disables test mode")
+        print("/brolls test - Enables/disables test mode (then do /roll "..BetterRollsDB.winnerRoll.."-"..BetterRollsDB.winnerRoll..")")
     end
 end
