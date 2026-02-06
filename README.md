@@ -1,11 +1,15 @@
-# BetterRollTracker
+# BetterRolls
 
-World of Warcraft addon that detects when players roll 69 and displays them in a draggable frame.
+World of Warcraft addon that detects when players rolls a settable value
+(default 69) collecting them in a frame and announcing to the raid (or yell)
 
 ## Slash Commands
 
-- `/nice69` or `/69tracker` - Show command help
-- `/nice69 show` - Show the tracker frame
-- `/nice69 hide` - Hide the tracker frame
-- `/nice69 toggle` - Toggle the tracker frame visibility
-- `/nice69 clear` - Clear the roll list and hide the frame
+`/brolls` - Show command help
+`/brolls show` - Show the tracker frame
+`/brolls hide` - Hide the tracker frame
+`/brolls toggle` - Toggle the tracker frame
+`/brolls clear` - Clear the roll list and hide frame
+`/brolls reset` - Reset frame position to center
+`/brolls set <value>` - Set the winner roll value
+`/brolls test` - Enables/disables test mode

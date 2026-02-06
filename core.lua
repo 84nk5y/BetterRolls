@@ -1,12 +1,14 @@
-local addonName, addon = ...
+BetterRollsDB = BetterRollsDB or { winnerRoll = 69, position = {} }
 
--- Session-only data (cleared when frame closes)
-addon.rolls = {}
+ROLLS = {}
+DISPLAY_LINES = {}
+TEST_MODE = false
 
--- Create the main frame
-local frame = CreateFrame("Frame", "Nice69TrackerFrame", UIParent, "BackdropTemplate")
+local UpdateDisplay
+
+local frame = CreateFrame("Frame", "BetterRollsFrame", UIParent, "BackdropTemplate")
 frame:SetSize(250, 300)
-frame:SetPoint("LEFT")
+frame:SetPoint("CENTER")
 frame:SetBackdrop({
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -20,74 +22,72 @@ frame:EnableMouse(true)
 frame:SetMovable(true)
 frame:RegisterForDrag("LeftButton")
 frame:SetScript("OnDragStart", frame.StartMoving)
-frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+frame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, relativePoint, xOfs, yOfs = self:GetPoint()
+    BetterRollsDB.position = {point, relativePoint, xOfs, yOfs}
+end)
 frame:SetClampedToScreen(true)
+frame:Hide()
 
--- Create title text
+if BetterRollsDB.position and #BetterRollsDB.position == 4 then
+    frame:ClearAllPoints()
+    frame:SetPoint(BetterRollsDB.position[1], UIParent, BetterRollsDB.position[2],
+                   BetterRollsDB.position[3], BetterRollsDB.position[4])
+end
+
 local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 title:SetPoint("TOP", 0, -15)
-title:SetText("Nice! (69)")
+title:SetText("Nice! ("..BetterRollsDB.winnerRoll..")")
 
--- Create close button
 local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 closeButton:SetPoint("TOPRIGHT", -5, -5)
 closeButton:SetScript("OnClick", function()
-    addon.rolls = {}
-    addon:UpdateDisplay()
+    ROLLS = {}
+    UpdateDisplay()
     frame:Hide()
 end)
 
--- Create scroll frame
-local scrollFrame = CreateFrame("ScrollFrame", "Nice69ScrollFrame", frame, "UIPanelScrollFrameTemplate")
+local scrollFrame = CreateFrame("ScrollFrame", "BetterRollScrollFrame", frame, "UIPanelScrollFrameTemplate")
 scrollFrame:SetPoint("TOPLEFT", 15, -40)
 scrollFrame:SetPoint("BOTTOMRIGHT", -30, 40)
 
--- Create scroll child (content holder)
 local scrollChild = CreateFrame("Frame", nil, scrollFrame)
 scrollChild:SetSize(210, 1)
 scrollFrame:SetScrollChild(scrollChild)
 
--- Create clear button
 local clearButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 clearButton:SetSize(100, 25)
 clearButton:SetPoint("BOTTOM", 0, 10)
 clearButton:SetText("Clear List")
 clearButton:SetScript("OnClick", function()
-    addon.rolls = {}
-    addon:UpdateDisplay()
+    ROLLS = {}
+    UpdateDisplay()
     frame:Hide()
 end)
 
--- Store font strings for display
-addon.displayLines = {}
-
--- Function to update the display
-function addon:UpdateDisplay()
-    -- Clear existing font strings
-    for i, fontString in ipairs(self.displayLines) do
+UpdateDisplay = function()
+    for i, fontString in ipairs(DISPLAY_LINES) do
         fontString:Hide()
         fontString:SetText("")
     end
 
-    -- Sort rolls by timestamp (most recent first)
     local sortedRolls = {}
-    for playerName, data in pairs(self.rolls) do
+    for playerName, data in pairs(ROLLS) do
         table.insert(sortedRolls, {name = playerName, time = data.time, count = data.count})
     end
     table.sort(sortedRolls, function(a, b) return a.time > b.time end)
 
-    -- Display rolls
     local yOffset = 0
     for i, rollData in ipairs(sortedRolls) do
-        if not self.displayLines[i] then
-            self.displayLines[i] = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            self.displayLines[i]:SetPoint("TOPLEFT", 5, 0)
+        if not DISPLAY_LINES[i] then
+            DISPLAY_LINES[i] = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            DISPLAY_LINES[i]:SetPoint("TOPLEFT", 5, 0)
         end
 
-        local fs = self.displayLines[i]
+        local fs = DISPLAY_LINES[i]
         fs:SetPoint("TOPLEFT", 5, -yOffset)
 
-        -- Color the player name by class if possible
         local classColor = "|cFFFFFFFF"
         local _, class = UnitClass(rollData.name)
         if class then
@@ -107,90 +107,96 @@ function addon:UpdateDisplay()
     scrollChild:SetHeight(math.max(yOffset, 1))
 end
 
--- Function to add a 69 roll
-function addon:AddRoll(playerName)
+local function AddRoll(playerName)
     if not playerName or playerName == "" then return end
 
-    -- Initialize or update the roll count
-    if self.rolls[playerName] then
-        self.rolls[playerName].count = self.rolls[playerName].count + 1
-        self.rolls[playerName].time = time()
+    if ROLLS[playerName] then
+        ROLLS[playerName].count = ROLLS[playerName].count + 1
+        ROLLS[playerName].time = time()
     else
-        self.rolls[playerName] = {
+        ROLLS[playerName] = {
             count = 1,
             time = time()
         }
     end
 
-    -- Play a sound
     PlaySound(SOUNDKIT.RAID_WARNING)
 
-    -- Update the display
-    self:UpdateDisplay()
+    UpdateDisplay()
 
-    -- Show the frame if it's hidden
     if not frame:IsShown() then
         frame:Show()
     end
 end
 
--- Event handler
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
-eventFrame:SetScript("OnEvent", function(self, event, message)
+local function AnnounceRoll(message)
+    if IsInRaid() and UnitIsGroupLeader("player") then
+        SendChatMessage(message, "RAID_WARNING")
+    end
+
+    print("|cffff0000BetterRolls:|r "..message)
+end
+
+frame:RegisterEvent("CHAT_MSG_SYSTEM")
+frame:SetScript("OnEvent", function(self, event, message)
     if event == "CHAT_MSG_SYSTEM" then
-        -- Pattern for roll messages
-        -- Example: "PlayerName rolls 69 (1-100)"
         local playerName, roll, minRoll, maxRoll = message:match("^(.+) rolls (%d+) %((%d+)%-(%d+)%)$")
 
         if playerName and roll then
             roll = tonumber(roll)
-            if roll == 69 then
-                addon:AddRoll(playerName)
+            minRoll = tonumber(minRoll)
+            maxRoll = tonumber(maxRoll)
+
+            local message = ""
+
+            if roll == BetterRollsDB.winnerRoll then
+                if not TEST_MODE and (minRoll == BetterRollsDB.winnerRoll or maxRoll == BetterRollsDB.winnerRoll) then
+                    message = playerName.." was naughty and faked a "..tostring(BetterRollsDB.winnerRoll).." roll!"
+                else
+                    message = playerName.." rolled "..tostring(BetterRollsDB.winnerRoll).."!"
+
+                    AddRoll(playerName)
+                end
+
+                AnnounceRoll(message)
             end
         end
     end
 end)
 
--- Slash commands
-SLASH_NICE69TRACKER1 = "/nice69"
-SLASH_NICE69TRACKER2 = "/69tracker"
 
-SlashCmdList["NICE69TRACKER"] = function(msg)
+SLASH_BetterRolls1 = "/brolls"
+
+SlashCmdList["BetterRolls"] = function(msg)
     msg = string.lower(msg or "")
 
     if msg == "show" then
         frame:Show()
-        print("Nice 69 Tracker: Frame shown")
     elseif msg == "hide" then
         frame:Hide()
-        print("Nice 69 Tracker: Frame hidden")
-    elseif msg == "toggle" then
-        if frame:IsShown() then
-            frame:Hide()
-        else
-            frame:Show()
-        end
     elseif msg == "clear" then
-        addon.rolls = {}
-        addon:UpdateDisplay()
+        ROLLS = {}
+        UpdateDisplay()
         frame:Hide()
-        print("Nice 69 Tracker: List cleared and frame hidden")
+        print("|cffff0000BetterRolls:|r List cleared and frame hidden")
+    elseif msg == "reset" then
+        BetterRollsDB.position = {}
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER")
+    elseif msg == "set" then
+        BetterRollsDB.winnerRoll = tonumber(msg)
+    elseif msg == "test" then
+        TEST_MODE = (not TEST_MODE)
+
+        print("|cffff0000BetterRolls:|r Test mode "..(TEST_MODE and "enabled" or "disabled"))
     else
-        print("Nice 69 Tracker Commands:")
-        print("/nice69 show - Show the tracker frame")
-        print("/nice69 hide - Hide the tracker frame")
-        print("/nice69 toggle - Toggle the tracker frame")
-        print("/nice69 clear - Clear the roll list and hide frame")
+        print("|cffff0000BetterRolls:|r Commands:")
+        print("/brolls show - Show the tracker frame")
+        print("/brolls hide - Hide the tracker frame")
+        print("/brolls toggle - Toggle the tracker frame")
+        print("/brolls clear - Clear the roll list and hide frame")
+        print("/brolls reset - Reset frame position to center")
+        print("/brolls set <value> - Set the winner roll value")
+        print("/brolls test - Enables/disables test mode")
     end
 end
-
--- Initialize on addon loaded
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:SetScript("OnEvent", function(self, event, loadedAddon)
-    if event == "ADDON_LOADED" and loadedAddon == addonName then
-        addon:UpdateDisplay()
-        print("Nice 69 Tracker loaded! Type /nice69 for commands")
-        self:UnregisterEvent("ADDON_LOADED")
-    end
-end)
