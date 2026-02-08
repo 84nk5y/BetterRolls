@@ -129,9 +129,23 @@ local function AddRoll(playerName)
     end
 end
 
+local function IsRaidLeader()
+    if not IsInRaid() then return false end
+
+    local playerName = UnitName("player")
+    for i = 1, GetNumGroupMembers() do
+        local name, rank = GetRaidRosterInfo(i)
+        if name == playerName then
+            return rank == 2
+        end
+    end
+
+    return false
+end
+
 local function AnnounceRoll(message)
-    if IsInRaid() and UnitIsGroupLeader("player") then
-        SendChatMessage(message, "RAID_WARNING")
+    if IsRaidLeader() then
+        SendChatMessage(message, "RAID")
     end
 
     print("|cffff0000BetterRolls:|r "..message)
@@ -139,7 +153,7 @@ end
 
 frame:RegisterEvent("CHAT_MSG_SYSTEM")
 frame:SetScript("OnEvent", function(self, event, message)
-    if event == "CHAT_MSG_SYSTEM" then
+    if event == "CHAT_MSG_SYSTEM" and not issecretvalue(message) then
         local playerName, roll, minRoll, maxRoll = message:match("^(.+) rolls (%d+) %((%d+)%-(%d+)%)$")
 
         if playerName and roll then
