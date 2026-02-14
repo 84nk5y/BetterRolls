@@ -8,8 +8,6 @@ function RollsFrameMixin:OnLoad()
     self.displayLines = {}
     self.testMode = false
 
-    self.title:SetText("Nice! ("..BetterRollsDB.winnerRoll..")")
-
     if BetterRollsDB.position and #BetterRollsDB.position == 4 then
         self:ClearAllPoints()
         self:SetPoint(BetterRollsDB.position[1], UIParent, BetterRollsDB.position[2],
@@ -33,6 +31,10 @@ function RollsFrameMixin:OnLoad()
     self:Hide()
 
     local frame = self
+    self:HookScript("OnShow", function()
+        frame.title:SetText("Nice! ("..BetterRollsDB.winnerRoll..")")
+    end)
+
     self.closeButton:SetScript("OnClick", function()
         frame:Clear()
     end)
@@ -198,7 +200,7 @@ SlashCmdList["BetterRolls"] = function(arg)
         local value = tonumber(msg:match("^set%s+(%d+)$"))
         if value and value >= 1 and value <= 100 then
             BetterRollsDB.winnerRoll = value
-            RollsFrame.title:SetText("Nice! ("..value..")")
+            RollsFrame.title:SetText("Nice! ("..BetterRollsDB.winnerRoll..")")
             print("|cffB0C4DE[BetterRolls]|r Winner roll set to "..value)
         else
             print("|cffB0C4DE[BetterRolls]|r Invalid value. Must be 1-100.")
