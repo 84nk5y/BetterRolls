@@ -42,7 +42,6 @@ function RollsFrameMixin:OnLoad()
     end)
 
     self:RegisterEvent("CHAT_MSG_SYSTEM")
-    self:RegisterEvent("GROUP_ROSTER_UPDATE")
 end
 
 function RollsFrameMixin:Clear()
@@ -153,7 +152,7 @@ function RollsFrameMixin:AnnounceRoll(message)
 end
 
 function RollsFrameMixin:OnEvent(event, message)
-    if not issecretvalue(message) then
+    if message and not issecretvalue(message) then
         local playerName, roll, minRoll, maxRoll = message:match("^(.+) rolls (%d+) %((%d+)%-(%d+)%)$")
 
         if playerName and roll then
