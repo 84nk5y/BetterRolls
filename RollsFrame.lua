@@ -1,3 +1,5 @@
+local ADDON_NAME, _ = ...
+
 BetterRollsDB = BetterRollsDB or { winnerRoll = 69, position = {} }
 
 
@@ -150,7 +152,7 @@ function RollsFrameMixin:AnnounceRoll(message)
         SendChatMessage(message, "RAID")
     end
 
-    print("|cffB0C4DE[BetterRolls]|r "..message)
+    print("|cffB0C4DE["..ADDON_NAME.."]|r "..message)
 end
 
 function RollsFrameMixin:OnEvent(event, message)
@@ -190,26 +192,26 @@ SlashCmdList["BetterRolls"] = function(arg)
         RollsFrame:Hide()
     elseif msg == "clear" then
         RollsFrame:Clear()
-        print("|cffB0C4DE[BetterRolls]|r List cleared and frame hidden")
+        print("|cffB0C4DE["..ADDON_NAME.."]|r List cleared and frame hidden")
     elseif msg == "reset" then
         BetterRollsDB.position = {}
         RollsFrame:ClearAllPoints()
         RollsFrame:SetPoint("CENTER")
-        print("|cffB0C4DE[BetterRolls]|r Position reset to center")
+        print("|cffB0C4DE["..ADDON_NAME.."]|r Position reset to center")
     elseif msg:match("^set%s+%d+$") then
         local value = tonumber(msg:match("^set%s+(%d+)$"))
         if value and value >= 1 and value <= 100 then
             BetterRollsDB.winnerRoll = value
             RollsFrame.title:SetText("Nice! ("..BetterRollsDB.winnerRoll..")")
-            print("|cffB0C4DE[BetterRolls]|r Winner roll set to "..value)
+            print("|cffB0C4DE["..ADDON_NAME.."]|r Winner roll set to "..value)
         else
-            print("|cffB0C4DE[BetterRolls]|r Invalid value. Must be 1-100.")
+            print("|cffB0C4DE["..ADDON_NAME.."]|r Invalid value. Must be 1-100.")
         end
     elseif msg == "test" then
         RollsFrame.testMode = not RollsFrame.testMode
-        print("|cffB0C4DE[BetterRolls]|r Test mode "..(RollsFrame.testMode and "enabled" or "disabled"))
+        print("|cffB0C4DE["..ADDON_NAME.."]|r Test mode "..(RollsFrame.testMode and "enabled" or "disabled"))
     else
-        print("|cffB0C4DE[BetterRolls]|r Commands:")
+        print("|cffB0C4DE["..ADDON_NAME.."]|r Commands:")
         print("  /brolls show - Show the tracker frame")
         print("  /brolls hide - Hide the tracker frame")
         print("  /brolls clear - Clear the roll list and hide frame")
